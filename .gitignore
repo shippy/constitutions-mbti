@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Secrets
+.env
+.envrc
+
+# Data (large, regenerable)
+data/raw/
+data/processed/
+data/results/
+
+# Claude
+.claude/
