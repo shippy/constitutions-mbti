@@ -138,6 +138,45 @@
     color: var(--ink-2);
   }
 
+  /* ---------- Decoder: what the letters mean in this lens ---------- */
+  .decoder {
+    margin: 0.85rem var(--gutter) 0;
+    padding: 0.85rem 1rem 0.9rem;
+    background: var(--seal-wash);
+    border-top: 2px solid var(--seal);
+  }
+  .decoder-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 1rem; margin-bottom: 0.6rem; }
+  .decoder-head h2 {
+    font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--seal);
+    text-wrap: balance;
+  }
+  .decoder-more {
+    min-height: 2rem; font-size: 0.8125rem; font-weight: 600; color: var(--ink);
+    text-decoration: underline; text-decoration-color: var(--seal); text-underline-offset: 0.2em;
+  }
+  .decoder-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem 1rem; }
+  @media (min-width: 60rem) {
+    .decoder-list { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 1.25rem; }
+    .pair + .pair { border-left: 1px solid oklch(84% 0.05 40); padding-left: 1.25rem; }
+  }
+  .pair { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.5rem; align-content: start; align-items: baseline; }
+  .pair dt {
+    display: contents;
+  }
+  .pair dt b {
+    font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; line-height: 1.15;
+    color: var(--seal); width: 1.2rem; text-align: center;
+  }
+  .pair dt span {
+    font-family: var(--font-display); font-size: clamp(1rem, 0.95rem + 0.25vw, 1.2rem); line-height: 1.2;
+    color: var(--ink);
+  }
+  .pair dd + dt::before {
+    content: "or"; grid-column: 2; font-family: var(--font-display); font-style: italic; font-size: 0.8125rem; color: var(--ink-3); line-height: 1.1;
+  }
+  .pair dd { grid-column: 2; font-size: 0.8125rem; color: var(--ink-2); line-height: 1.35; margin: 0.1rem 0 0.35rem; display: none; text-wrap: pretty; }
+  .decoder.open .pair dd { display: block; }
+
   /* ---------- Layout ---------- */
   .layout { display: grid; grid-template-columns: minmax(0, 1fr); }
   @media (min-width: 60rem) {
@@ -366,22 +405,6 @@
   }
   .members button:hover { text-decoration-color: var(--seal); }
 
-  .glossary { margin-top: 1.75rem; border-top: 1px solid var(--ink); }
-  .glossary summary {
-    min-height: var(--tap);
-    display: flex; align-items: center; gap: 0.5rem;
-    font-weight: 600; font-size: 0.9375rem;
-    cursor: pointer; list-style: none;
-    padding: 0.5rem 0;
-  }
-  .glossary summary::-webkit-details-marker { display: none; }
-  .glossary summary::before { content: "+"; font-family: var(--font-display); color: var(--seal); width: 1rem; font-size: 1.2rem; }
-  .glossary[open] summary::before { content: "–"; }
-  .glossary dl { display: grid; gap: 0.9rem; padding-bottom: 0.5rem; }
-  .glossary dt { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
-  .glossary dd { font-size: 0.875rem; color: var(--ink-2); margin-top: 0.15rem; }
-  .glossary dd b { font-family: var(--font-display); color: var(--seal); margin-right: 0.3rem; }
-  .glossary dd strong { color: var(--ink); font-weight: 600; }
 
   .colophon {
     margin-top: 1.75rem; padding-top: 0.9rem;
@@ -408,6 +431,13 @@
   <div class="lens-row" id="lens-row" role="group" aria-label="Choose a lens"></div>
 </nav>
 <p class="lens-dek" id="lens-dek"></p>
+<section class="decoder" id="decoder" aria-labelledby="decoder-title">
+  <div class="decoder-head">
+    <h2 id="decoder-title">What the four letters mean in this lens</h2>
+    <button type="button" class="decoder-more" id="decoder-more" aria-expanded="false" aria-controls="decoder-list">Show definitions</button>
+  </div>
+  <dl class="decoder-list" id="decoder-list"></dl>
+</section>
 
 <main class="layout">
   <section class="stage" aria-label="Map">
@@ -441,11 +471,6 @@
     <h2 id="arch-title">Archetypes</h2>
     <p class="sub">Clusters of constitutions that scored alike. Select one to light it up on the map.</p>
     <ol class="arch-list" id="arch-list"></ol>
-
-    <details class="glossary" id="glossary">
-      <summary>What the four letters mean in this lens</summary>
-      <dl id="glossary-list"></dl>
-    </details>
 
     <footer class="colophon">
       <p><strong>Method.</strong> Claude read each constitution and scored it from −1 to +1 on four axes per lens. Constitutions with similar scores sit close together on the map (UMAP); archetypes are the clusters on that map (HDBSCAN), named by Claude. Treat it as a parlour game with footnotes.</p>
@@ -923,15 +948,22 @@ function renderArchetypes() {
   });
 }
 
-function renderGlossary() {
+function renderDecoder() {
   const l = lens();
-  $('glossary-list').innerHTML = AXES.map(key => {
+  $('decoder-list').innerHTML = AXES.map(key => {
     const [a, b] = key.split('_'), d = l.dimensions[key] || {};
-    return `<div><dt>${a} / ${b}${d.name ? ' · ' + esc(d.name) : ''}</dt>
-      <dd><b>${a}</b><strong>${esc(d[a + '_label'])}</strong>: ${esc(d[a + '_desc'])}</dd>
-      <dd><b>${b}</b><strong>${esc(d[b + '_label'])}</strong>: ${esc(d[b + '_desc'])}</dd></div>`;
+    return `<div class="pair">
+      <dt><b>${a}</b><span>${esc(d[a + '_label'])}</span></dt><dd>${esc(d[a + '_desc'])}</dd>
+      <dt><b>${b}</b><span>${esc(d[b + '_label'])}</span></dt><dd>${esc(d[b + '_desc'])}</dd>
+    </div>`;
   }).join('');
 }
+
+$('decoder-more').onclick = e => {
+  const open = $('decoder').classList.toggle('open');
+  e.currentTarget.setAttribute('aria-expanded', open);
+  e.currentTarget.textContent = open ? 'Hide definitions' : 'Show definitions';
+};
 
 function renderLensText() {
   const n = LENS_IDS.indexOf(state.lens);
@@ -949,7 +981,7 @@ function switchLens(id, { animate = true } = {}) {
   const fit = fitView();
   fitK = fit.k; view = fit; viewTween = null;
   posTween = animate && !REDUCED && from.size ? { from, start: performance.now(), dur: 750 } : null;
-  renderLensButtons(); renderLensText(); renderArchetypes(); renderKey(); renderGlossary(); renderStatus(); renderDetail();
+  renderLensButtons(); renderLensText(); renderArchetypes(); renderKey(); renderDecoder(); renderStatus(); renderDetail();
   syncHash();
   requestDraw();
 }
