@@ -478,6 +478,7 @@ const $ = id => document.getElementById(id);
 
 const state = { lens: LENS_IDS[0], selected: null, hovered: null, cluster: null, type: null, query: '', matches: null };
 const lens = () => LENSES[state.lens];
+const isLens = id => typeof id === 'string' && Object.hasOwn(LENSES, id);
 const countries = () => lens().countries;
 const byId = id => countries().find(c => c.country_id === id);
 
@@ -819,7 +820,7 @@ document.addEventListener('keydown', e => {
 // ---------- Rendering: DOM ----------
 function renderLensButtons() {
   $('lens-row').innerHTML = LENS_IDS.map((id, n) => `
-    <button type="button" class="lens-btn" data-lens="${id}" aria-pressed="${id === state.lens}">
+    <button type="button" class="lens-btn" data-lens="${esc(id)}" aria-pressed="${id === state.lens}">
       <span class="art">Art. ${ROMAN[n]}</span><span>${esc(LENSES[id].name)}</span>
     </button>`).join('');
   $('lens-row').querySelectorAll('.lens-btn').forEach(b => b.onclick = () => switchLens(b.dataset.lens));
@@ -848,7 +849,7 @@ function renderDetail() {
   el.style.setProperty('--c', color);
   el.innerHTML = `
     <button type="button" class="detail-close" aria-label="Close">×</button>
-    <p class="detail-arch"><button type="button" data-cid="${c.cluster}">${esc(arch.name)}</button></p>
+    <p class="detail-arch"><button type="button" data-cid="${esc(c.cluster)}">${esc(arch.name)}</button></p>
     <div class="detail-head">
       <h2 class="detail-name">${esc(c.country)}</h2>
       <span class="type-tag"><span class="sw"></span>${esc(c.mbti)}</span>
@@ -859,7 +860,7 @@ function renderDetail() {
   el.querySelector('.detail-arch button').onclick = () => {
     const cid = String(c.cluster);
     if (state.cluster !== cid) setCluster(cid);
-    document.querySelector(`.arch[data-cid="${cid}"]`)?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'nearest' });
+    document.querySelector(`.arch[data-cid="${CSS.escape(cid)}"]`)?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'nearest' });
   };
 }
 
@@ -899,7 +900,7 @@ function renderArchetypes() {
     const a = l.archetypes[cid];
     const members = cs.filter(c => String(c.cluster) === cid).sort((x, y) => x.country.localeCompare(y.country));
     const active = state.cluster === cid;
-    return `<li class="arch${active ? ' active' : ''}" data-cid="${cid}">
+    return `<li class="arch${active ? ' active' : ''}" data-cid="${esc(cid)}">
       <button type="button" class="arch-head" aria-pressed="${active}" aria-expanded="${active}">
         <span class="arch-type"><span class="sw" style="--c:${typeColor(a.mbti)}"></span>${esc(a.mbti)}</span>
         <span class="arch-name">${esc(a.name)}</span>
@@ -910,7 +911,7 @@ function renderArchetypes() {
         <div class="arch-more">
           ${a.key_themes?.length ? `<ul class="arch-themes">${a.key_themes.map(t => `<li>${md(t)}</li>`).join('')}</ul>` : ''}
           <p class="members-label">Members</p>
-          <ul class="members">${members.map(m => `<li><button type="button" data-id="${m.country_id}">${esc(m.country)}</button></li>`).join('')}</ul>
+          <ul class="members">${members.map(m => `<li><button type="button" data-id="${esc(m.country_id)}">${esc(m.country)}</button></li>`).join('')}</ul>
         </div>
       </div>
     </li>`;
@@ -939,7 +940,7 @@ function renderLensText() {
 }
 
 function switchLens(id, { animate = true } = {}) {
-  if (!LENSES[id]) return;
+  if (!isLens(id)) return;
   const from = new Map(countries().map((c, i) => [c.country_id, lastPts[i]]).filter(([, p]) => p));
   state.lens = id;
   state.cluster = null; state.type = null; state.hovered = null;
@@ -967,7 +968,7 @@ function readHash() {
 // ---------- Boot ----------
 resize();
 const initial = readHash();
-switchLens(LENSES[initial.lens] ? initial.lens : state.lens, { animate: false });
+switchLens(isLens(initial.lens) ? initial.lens : state.lens, { animate: false });
 if (initial.country && byId(initial.country)) {
   select(initial.country);
   if (matchMedia('(max-width: 59.99rem)').matches) mapEl.scrollIntoView({ block: 'center' });
